@@ -1,36 +1,40 @@
-version: "3.9"
-
+version: "3.8"
 services:
   mysql:
-    image: mysql:8.0
-    container_name: expenses_mysql
-    restart: always
+    image: mysql:latest
+    container_name: mysql
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: expensesdb
-      MYSQL_USER: expenseuser
-      MYSQL_PASSWORD: expensepass
-    ports:
-      - "3306:3306"
+      MYSQL_ROOT_PASSWORD: Test@123
+      MYSQL_DATABASE: expenses_tracker
     volumes:
-      - mysql_data:/var/lib/mysql
-
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: expenses_app
+      - ./mysql-data:/var/lib/mysql
+    networks:
+      - appbridge
+    healthcheck:
+      test: ["CMD","mysqladmin","ping","-h","localhost","-uroot","-pTest@123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: always
+
+  mainapp:
+    image: snehcreate/expensetracker_v3
+    container_name: Expensetracker
+    environment:
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/expenses_tracker?allowPublicKeyRetrieval=true&useSSL=false"
+      SPRING_DATASOURCE_PASSWORD: Test@123
     ports:
       - "8080:8080"
+    networks:
+      - appbridge
     depends_on:
       - mysql
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/expensesdb?useSSL=false&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: expenseuser
-      SPRING_DATASOURCE_PASSWORD: expensepass
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      SPRING_JPA_SHOW_SQL: "true"
+    restart: always
+
+networks:
+  appbridge:
 
 volumes:
-  mysql_data:
+  mysql-data:
